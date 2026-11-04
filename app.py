@@ -246,4 +246,4 @@ with tab3:
                 if bars.empty:
                     st.error("No market data returned. Check symbol or market hours.")
                 else:
-                    df, last_signal = calculate_sma_signals(ba
+                    df, last_signal = calculate_sma_signals(bars, fast_sma, slow_sma)
