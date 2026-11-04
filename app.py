@@ -247,3 +247,37 @@ with tab3:
                     st.error("No market data returned. Check symbol or market hours.")
                 else:
                     df, last_signal = calculate_sma_signals(bars, fast_sma, slow_sma)
+
+                    # Current position?
+                    positions = trading_client.get_all_positions()
+                    has_position = any(p.symbol == symbol_auto for p in positions)
+
+                    st.write(f"**Latest Signal value:** `{last_signal}`  (1 = Buy cross, -1 = Sell cross, 0/NaN = no new cross)")
+
+                    if last_signal == 1 and not has_position:
+                        order = place_market_order(trading_client, symbol_auto, trade_qty, "buy")
+                        st.success(f"✅ BUY signal → Bought {trade_qty} shares of {symbol_auto}")
+                        st.write(f"Order ID: {order.id}")
+                    elif last_signal == -1 and has_position:
+                        # Sell the whole position for simplicity
+                        pos = next(p for p in positions if p.symbol == symbol_auto)
+                        qty_to_sell = abs(float(pos.qty))
+                        order = place_market_order(trading_client, symbol_auto, qty_to_sell, "sell")
+                        st.success(f"✅ SELL signal → Sold {qty_to_sell} shares of {symbol_auto}")
+                        st.write(f"Order ID: {order.id}")
+                    else:
+                        st.info("No new actionable signal right now (or already in desired position).")
+
+                    # Show last few rows
+                    st.dataframe(df[["timestamp", "close", "SMA_Fast", "SMA_Slow", "Signal", "Position"]].tail(10))
+
+            except Exception as e:
+                st.error(f"Strategy error: {e}")
+
+    st.divider()
+    st.markdown("""
+    ### How to make it more automatic
+    - Click **Run Strategy Once** periodically (or set a reminder)
+    - For fully hands-off automation, run a separate Python script on a schedule (cron / Task Scheduler) that uses the same logic
+    - Never leave a live bot running unsupervised without hard risk limits
+    """)
